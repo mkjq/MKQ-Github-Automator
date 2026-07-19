@@ -145,25 +145,34 @@ class GitHubAutomatorApp(ctk.CTk):
                 
             entry_widget.bind("<Button-3>", show_menu)
             
-            # Universal Bindings (English + Arabic layouts + Generic Virtual Events)
+            # Safe Universal Bindings (English layouts + Generic Virtual Events)
             entry_widget.bind("<Control-v>", do_paste)
             entry_widget.bind("<Control-V>", do_paste)
-            entry_widget.bind("<Control-ر>", do_paste)
             entry_widget.bind("<<Paste>>", do_paste)
             
             entry_widget.bind("<Control-c>", do_copy)
             entry_widget.bind("<Control-C>", do_copy)
-            entry_widget.bind("<Control-ؤ>", do_copy)
             entry_widget.bind("<<Copy>>", do_copy)
             
             entry_widget.bind("<Control-x>", do_cut)
             entry_widget.bind("<Control-X>", do_cut)
-            entry_widget.bind("<Control-ء>", do_cut)
             entry_widget.bind("<<Cut>>", do_cut)
             
             entry_widget.bind("<Control-a>", do_select_all)
             entry_widget.bind("<Control-A>", do_select_all)
-            entry_widget.bind("<Control-ش>", do_select_all)
+            
+            # Catch KeyPress for all keys, and check keycode to support Arabic Layout safely!
+            def handle_keypress(event):
+                if event.state & 0x0004: # Control key is down
+                    if event.keycode == 86: # V key
+                        return do_paste(event)
+                    elif event.keycode == 67: # C key
+                        return do_copy(event)
+                    elif event.keycode == 88: # X key
+                        return do_cut(event)
+                    elif event.keycode == 65: # A key
+                        return do_select_all(event)
+            entry_widget.bind("<KeyPress>", handle_keypress, add="+")
             
         self._add_context_menu = _add_context_menu
         

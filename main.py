@@ -80,25 +80,29 @@ class GitHubAutomatorApp(ctk.CTk):
         self.configure(fg_color=self.bg_color)
         ctk.set_appearance_mode("dark")
         
-        # Context Menu Helper
         def _add_context_menu(entry_widget):
             menu = tk.Menu(self, tearoff=0, bg=self.entry_bg, fg=self.text_header, activebackground=self.primary_accent, activeforeground=self.text_header)
-            menu.add_command(label="Paste", command=lambda: entry_widget.event_generate("<<Paste>>"))
+            
+            def do_paste():
+                try:
+                    text = self.clipboard_get()
+                    if text:
+                        try:
+                            entry_widget.delete("sel.first", "sel.last")
+                        except tk.TclError:
+                            pass
+                        entry_widget.insert("insert", text)
+                except Exception:
+                    pass
+
+            menu.add_command(label="Paste", command=do_paste)
             menu.add_command(label="Copy", command=lambda: entry_widget.event_generate("<<Copy>>"))
             menu.add_command(label="Select All", command=lambda: entry_widget.select_range(0, 'end'))
             
             def show_menu(event):
                 menu.tk_popup(event.x_root, event.y_root)
                 
-            def force_paste(event):
-                try:
-                    entry_widget.insert("insert", self.clipboard_get())
-                    return "break"
-                except:
-                    pass
-                    
             entry_widget.bind("<Button-3>", show_menu)
-            entry_widget.bind("<Control-v>", force_paste)
             
         self._add_context_menu = _add_context_menu
         

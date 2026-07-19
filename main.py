@@ -437,7 +437,32 @@ class GitHubAutomatorApp(ctk.CTk):
                     clone_url = clone_url.replace("https://github.com/", f"https://{pat}@github.com/")
                 
                 cmd = ["git", "clone", clone_url, str(target_dir)]
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
+                try:
+                    subprocess.run(cmd, check=True, capture_output=True, text=True)
+                except FileNotFoundError:
+                    self._update_progress(0.4, "Status: Git not installed. Falling back to ZIP...")
+                    import tempfile
+                    parts = [p for p in url.split("/") if p]
+                    if len(parts) >= 4 and parts[1] == "github.com":
+                        repo_name = parts[3].replace(".git", "")
+                        api_url = f"https://api.github.com/repos/{parts[2]}/{repo_name}/zipball"
+                        req = urllib.request.Request(api_url)
+                        if pat:
+                            req.add_header("Authorization", f"token {pat}")
+                        req.add_header("User-Agent", "Mozilla/5.0")
+                        with urllib.request.urlopen(req) as response:
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+                                shutil.copyfileobj(response, tmp)
+                                tmp_path = tmp.name
+                        with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+                            zip_ref.extractall(root_path)
+                            extracted_names = zip_ref.namelist()
+                            if extracted_names:
+                                root_folder = extracted_names[0].split('/')[0]
+                                target_dir = root_path / root_folder
+                        os.remove(tmp_path)
+                    else:
+                        raise Exception("Git not installed and URL is not a standard GitHub repository.")
                 
             self._update_progress(0.8, "Status: Organizing Files...")
             

@@ -80,10 +80,11 @@ class GitHubAutomatorApp(ctk.CTk):
         self.configure(fg_color=self.bg_color)
         ctk.set_appearance_mode("dark")
         
+        # Context Menu Helper
         def _add_context_menu(entry_widget):
             menu = tk.Menu(self, tearoff=0, bg=self.entry_bg, fg=self.text_header, activebackground=self.primary_accent, activeforeground=self.text_header)
             
-            def do_paste():
+            def do_paste(event=None):
                 try:
                     text = self.clipboard_get()
                     if text:
@@ -92,17 +93,77 @@ class GitHubAutomatorApp(ctk.CTk):
                         except tk.TclError:
                             pass
                         entry_widget.insert("insert", text)
+                    return "break"
+                except Exception:
+                    pass
+
+            def do_copy(event=None):
+                try:
+                    # _CTkEntry uses internal tk.Entry logic for selection indices
+                    # But CustomTkinter's select_present method works better, let's use standard indices
+                    try:
+                        first = entry_widget.index("sel.first")
+                        last = entry_widget.index("sel.last")
+                        text = entry_widget.get()[first:last]
+                        self.clipboard_clear()
+                        self.clipboard_append(text)
+                    except tk.TclError:
+                        pass
+                    return "break"
+                except Exception:
+                    pass
+
+            def do_cut(event=None):
+                try:
+                    try:
+                        first = entry_widget.index("sel.first")
+                        last = entry_widget.index("sel.last")
+                        text = entry_widget.get()[first:last]
+                        self.clipboard_clear()
+                        self.clipboard_append(text)
+                        entry_widget.delete("sel.first", "sel.last")
+                    except tk.TclError:
+                        pass
+                    return "break"
+                except Exception:
+                    pass
+                    
+            def do_select_all(event=None):
+                try:
+                    entry_widget.select_range(0, 'end')
+                    return "break"
                 except Exception:
                     pass
 
             menu.add_command(label="Paste", command=do_paste)
-            menu.add_command(label="Copy", command=lambda: entry_widget.event_generate("<<Copy>>"))
-            menu.add_command(label="Select All", command=lambda: entry_widget.select_range(0, 'end'))
+            menu.add_command(label="Copy", command=do_copy)
+            menu.add_command(label="Cut", command=do_cut)
+            menu.add_command(label="Select All", command=do_select_all)
             
             def show_menu(event):
                 menu.tk_popup(event.x_root, event.y_root)
                 
             entry_widget.bind("<Button-3>", show_menu)
+            
+            # Universal Bindings (English + Arabic layouts + Generic Virtual Events)
+            entry_widget.bind("<Control-v>", do_paste)
+            entry_widget.bind("<Control-V>", do_paste)
+            entry_widget.bind("<Control-ر>", do_paste)
+            entry_widget.bind("<<Paste>>", do_paste)
+            
+            entry_widget.bind("<Control-c>", do_copy)
+            entry_widget.bind("<Control-C>", do_copy)
+            entry_widget.bind("<Control-ؤ>", do_copy)
+            entry_widget.bind("<<Copy>>", do_copy)
+            
+            entry_widget.bind("<Control-x>", do_cut)
+            entry_widget.bind("<Control-X>", do_cut)
+            entry_widget.bind("<Control-ء>", do_cut)
+            entry_widget.bind("<<Cut>>", do_cut)
+            
+            entry_widget.bind("<Control-a>", do_select_all)
+            entry_widget.bind("<Control-A>", do_select_all)
+            entry_widget.bind("<Control-ش>", do_select_all)
             
         self._add_context_menu = _add_context_menu
         
@@ -296,6 +357,15 @@ class GitHubAutomatorApp(ctk.CTk):
         settings_win.title("Settings")
         settings_win.geometry("500x440")
         settings_win.configure(fg_color=self.bg_color)
+        
+        def resource_path(relative_path):
+            try: return os.path.join(sys._MEIPASS, relative_path)
+            except Exception: return os.path.join(os.path.abspath("."), relative_path)
+        try:
+            settings_win.iconbitmap(resource_path("icon.ico"))
+        except:
+            pass
+
         settings_win.transient(self) # Keep on top of main
         settings_win.grab_set() # Make modal
         

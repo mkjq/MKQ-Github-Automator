@@ -501,7 +501,17 @@ class GitHubAutomatorApp(ctk.CTk):
                     req.add_header("Authorization", f"token {pat}")
                 req.add_header("User-Agent", "Mozilla/5.0")
                 
-                with urllib.request.urlopen(req) as response:
+                try:
+                    response = urllib.request.urlopen(req)
+                except urllib.error.HTTPError as e:
+                    if e.code == 401 and pat:
+                        req_retry = urllib.request.Request(url)
+                        req_retry.add_header("User-Agent", "Mozilla/5.0")
+                        response = urllib.request.urlopen(req_retry)
+                    else:
+                        raise
+                        
+                with response:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
                         shutil.copyfileobj(response, tmp)
                         tmp_path = tmp.name
@@ -533,7 +543,18 @@ class GitHubAutomatorApp(ctk.CTk):
                         if pat:
                             req.add_header("Authorization", f"token {pat}")
                         req.add_header("User-Agent", "Mozilla/5.0")
-                        with urllib.request.urlopen(req) as response:
+                        
+                        try:
+                            response = urllib.request.urlopen(req)
+                        except urllib.error.HTTPError as e:
+                            if e.code == 401 and pat:
+                                req_retry = urllib.request.Request(api_url)
+                                req_retry.add_header("User-Agent", "Mozilla/5.0")
+                                response = urllib.request.urlopen(req_retry)
+                            else:
+                                raise
+                                
+                        with response:
                             with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
                                 shutil.copyfileobj(response, tmp)
                                 tmp_path = tmp.name
@@ -624,7 +645,17 @@ class GitHubAutomatorApp(ctk.CTk):
             if pat and "raw.githubusercontent.com" in url:
                 req.add_header("Authorization", f"token {pat}")
 
-            with urllib.request.urlopen(req) as response:
+            try:
+                response = urllib.request.urlopen(req)
+            except urllib.error.HTTPError as e:
+                if e.code == 401 and pat:
+                    req_retry = urllib.request.Request(url)
+                    req_retry.add_header("User-Agent", "Mozilla/5.0")
+                    response = urllib.request.urlopen(req_retry)
+                else:
+                    raise
+
+            with response:
                 content = response.read().decode('utf-8')
                 
             self.after(0, lambda: self._copy_to_clipboard(content))
